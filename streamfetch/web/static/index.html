@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1115" />
+<title>streamfetch</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e9ef;
+    --muted: #98a1b3;
+    --accent: #4f8cff;
+    --accent-2: #6ea8ff;
+    --ok: #35c07a;
+    --err: #ff5c6c;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 100% -10%, #1b2440 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 22px 16px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .badge { font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 3px 8px; border-radius: 999px; }
+  .badge.ok { color: var(--ok); border-color: rgba(53,192,122,.4); }
+  .badge.err { color: var(--err); border-color: rgba(255,92,108,.4); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type=url], input[type=text], select {
+    width: 100%; padding: 13px 14px; border-radius: 10px;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); font-size: 16px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .mt { margin-top: 12px; }
+  button {
+    appearance: none; border: none; cursor: pointer;
+    padding: 13px 16px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    background: var(--accent); color: #fff; transition: filter .15s ease, opacity .15s ease;
+    width: 100%;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .toggle { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 14px; }
+  .toggle input { width: auto; }
+  .meta { display: flex; gap: 14px; }
+  .meta img { width: 108px; border-radius: 10px; object-fit: cover; background: #000; }
+  .meta .t { font-weight: 700; margin-bottom: 4px; }
+  .meta .s { font-size: 13px; color: var(--muted); }
+  .bar { height: 8px; border-radius: 999px; background: var(--panel-2); overflow: hidden; border: 1px solid var(--border); }
+  .bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .2s ease; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .error { color: var(--err); font-size: 14px; word-break: break-word; }
+  .file { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+  .file:first-child { border-top: none; }
+  .file .n { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file a { color: var(--accent-2); text-decoration: none; font-weight: 600; white-space: nowrap; }
+  .hidden { display: none !important; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 26px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="logo">↓</span> streamfetch</div>
+    <span id="health" class="badge">checking…</span>
+  </header>
+
+  <div class="card">
+    <label for="url">Video URL</label>
+    <input id="url" type="url" placeholder="https://youtube.com/watch?v=… or any video link"
+           autocapitalize="off" autocorrect="off" spellcheck="false" />
+    <div class="row mt">
+      <div>
+        <label for="quality">Quality</label>
+        <select id="quality">
+          <option value="best">Best available</option>
+          <option value="1080p">1080p</option>
+          <option value="720p">720p</option>
+          <option value="480p">480p</option>
+          <option value="360p">360p</option>
+          <option value="worst">Smallest</option>
+        </select>
+      </div>
+      <div>
+        <label>Audio only</label>
+        <label class="toggle"><input id="audio" type="checkbox" /> MP3 (needs ffmpeg)</label>
+      </div>
+    </div>
+    <div class="row mt">
+      <button id="infoBtn" class="ghost">Preview</button>
+      <button id="dlBtn">Download</button>
+    </div>
+  </div>
+
+  <div id="infoCard" class="card hidden">
+    <div class="meta">
+      <img id="thumb" alt="" />
+      <div>
+        <div id="title" class="t"></div>
+        <div id="sub" class="s"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="progCard" class="card hidden">
+    <div class="bar"><span id="barFill"></span></div>
+    <div id="statusText" class="status">Starting…</div>
+    <div id="files"></div>
+    <div id="dlError" class="error hidden"></div>
+  </div>
+
+  <footer>
+    <a href="/api/health">health</a> · built on yt-dlp · download only what you have the right to.
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = (path, opts) => fetch(path, opts).then(async (r) => {
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail || (r.status + " " + r.statusText));
+  return body;
+});
+
+function humanBytes(n) {
+  if (!n && n !== 0) return "?";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  let s = n, i = 0;
+  while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; }
+  return s.toFixed(1) + u[i];
+}
+function humanDur(sec) {
+  if (!sec) return "?";
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`;
+}
+
+async function checkHealth() {
+  const el = $("health");
+  try {
+    const h = await api("/api/health");
+    el.textContent = h.ffmpeg ? "ffmpeg ready" : "no ffmpeg";
+    el.className = "badge " + (h.ffmpeg ? "ok" : "err");
+  } catch {
+    el.textContent = "offline";
+    el.className = "badge err";
+  }
+}
+
+$("infoBtn").addEventListener("click", async () => {
+  const url = $("url").value.trim();
+  if (!url) return;
+  $("infoBtn").disabled = true;
+  try {
+    const m = await api("/api/info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    $("infoCard").classList.remove("hidden");
+    $("thumb").src = m.thumbnail || "";
+    $("title").textContent = m.title;
+    $("sub").textContent = [m.uploader, m.extractor, humanDur(m.duration),
+      m.is_playlist ? `${m.entry_count} items` : null].filter(Boolean).join(" · ");
+  } catch (e) {
+    alert("Could not fetch info:\n" + e.message);
+  } finally {
+    $("infoBtn").disabled = false;
+  }
+});
+
+$("dlBtn").addEventListener("click", async () => {
+  const url = $("url").value.trim();
+  if (!url) return;
+  $("dlBtn").disabled = true;
+  $("files").innerHTML = "";
+  $("dlError").classList.add("hidden");
+  $("progCard").classList.remove("hidden");
+  $("barFill").style.width = "0%";
+  $("statusText").textContent = "Queued…";
+
+  let jobId;
+  try {
+    const started = await api("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        quality: $("quality").value,
+        audio_only: $("audio").checked,
+      }),
+    });
+    jobId = started.job_id;
+  } catch (e) {
+    $("statusText").textContent = "";
+    $("dlError").textContent = e.message;
+    $("dlError").classList.remove("hidden");
+    $("dlBtn").disabled = false;
+    return;
+  }
+
+  const timer = setInterval(async () => {
+    let job;
+    try {
+      job = await api("/api/jobs/" + jobId);
+    } catch (e) {
+      clearInterval(timer); $("dlBtn").disabled = false; return;
+    }
+    const p = job.progress || {};
+    if (job.status === "done") {
+      clearInterval(timer);
+      $("barFill").style.width = "100%";
+      $("statusText").textContent = "Complete";
+      (job.files || []).forEach((f, i) => {
+        const div = document.createElement("div");
+        div.className = "file";
+        const href = `/api/jobs/${jobId}/file?filename=` + encodeURIComponent(f.filename);
+        div.innerHTML = `<span class="n">${f.title || f.filename}</span>`;
+        const a = document.createElement("a");
+        a.href = href; a.textContent = "Save ↓"; a.setAttribute("download", "");
+        div.appendChild(a);
+        $("files").appendChild(div);
+      });
+      $("dlBtn").disabled = false;
+    } else if (job.status === "error") {
+      clearInterval(timer);
+      $("statusText").textContent = "";
+      $("dlError").textContent = job.error || "Download failed";
+      $("dlError").classList.remove("hidden");
+      $("dlBtn").disabled = false;
+    } else {
+      if (p.percent != null) $("barFill").style.width = p.percent.toFixed(1) + "%";
+      const parts = [];
+      if (p.percent != null) parts.push(p.percent.toFixed(1) + "%");
+      if (p.total_bytes) parts.push(humanBytes(p.downloaded_bytes) + " / " + humanBytes(p.total_bytes));
+      if (p.speed) parts.push(humanBytes(p.speed) + "/s");
+      if (p.eta) parts.push("ETA " + humanDur(p.eta));
+      $("statusText").textContent = parts.length ? parts.join(" · ") : (job.stage || "Working…");
+    }
+  }, 700);
+});
+
+checkHealth();
+</script>
+</body>
+</html>
