@@ -40,7 +40,7 @@ It ships two front-ends backed by the same engine:
 ## Install
 
 ```bash
-git clone https://github.com/OWNER/streamfetch.git
+git clone https://github.com/Josh-cyber-pixel/streamfetch.git
 cd streamfetch
 
 python -m venv .venv
