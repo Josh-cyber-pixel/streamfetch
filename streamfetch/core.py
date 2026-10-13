@@ -16,8 +16,11 @@ import yt_dlp
 
 DEFAULT_OUTPUT_DIR = Path("downloads")
 
-#: Selectable quality presets and the maximum video height they map to.
-#: ``None`` means "no height cap" (best available).
+#: Player clients that can be forced for YouTube. ``""`` lets yt-dlp pick.
+#: Some clients (``tv``/``android``/``ios``/``mweb``) can bypass YouTube's
+#: "confirm you're not a bot" check on datacenter IPs.
+YOUTUBE_CLIENTS = ["", "web", "tv", "android", "ios", "mweb", "web_safari"]
+
 QUALITY_PRESETS: dict[str, int | None] = {
     "best": None,
     "2160p": 2160,
@@ -102,16 +105,14 @@ def build_format_selector(quality: str = "best", audio_only: bool = False) -> st
         return "bestvideo*+bestaudio/best"
     if height < 0:
         return "worstvideo*+worstaudio/worst"
-    return (
-        f"bestvideo[height<={height}]+bestaudio/"
-        f"best[height<={height}]/best"
-    )
+    return f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best"
 
 
 def _base_opts(
     output_dir: str | Path,
     *,
     cookies_from_browser: str | None = None,
+    player_client: str | None = None,
 ) -> dict:
     out = Path(output_dir).expanduser()
     opts: dict[str, Any] = {
@@ -130,6 +131,8 @@ def _base_opts(
     }
     if cookies_from_browser:
         opts["cookiesfrombrowser"] = (cookies_from_browser,)
+    if player_client:
+        opts["extractor_args"] = {"youtube": {"player_client": [player_client]}}
     return opts
 
 
@@ -166,6 +169,7 @@ def extract_info(
     url: str,
     *,
     cookies_from_browser: str | None = None,
+    player_client: str | None = None,
     flat: bool = False,
 ) -> dict:
     """Fetch raw metadata for ``url`` without downloading anything."""
@@ -178,28 +182,41 @@ def extract_info(
         opts["extract_flat"] = "in_playlist"
     if cookies_from_browser:
         opts["cookiesfrombrowser"] = (cookies_from_browser,)
+    if player_client:
+        opts["extractor_args"] = {"youtube": {"player_client": [player_client]}}
 
     with yt_dlp.YoutubeDL(opts) as ydl:
         return ydl.extract_info(url, download=False)
 
 
-def fetch_metadata(url: str, *, cookies_from_browser: str | None = None) -> MediaInfo:
+def fetch_metadata(
+    url: str,
+    *,
+    cookies_from_browser: str | None = None,
+    player_client: str | None = None,
+) -> MediaInfo:
     """Return a :class:`MediaInfo` for ``url``."""
-    return MediaInfo.from_ytdlp(extract_info(url, cookies_from_browser=cookies_from_browser))
+    return MediaInfo.from_ytdlp(
+        extract_info(url, cookies_from_browser=cookies_from_browser, player_client=player_client)
+    )
 
 
-def list_formats(url: str, *, cookies_from_browser: str | None = None) -> list[dict]:
+def list_formats(
+    url: str,
+    *,
+    cookies_from_browser: str | None = None,
+    player_client: str | None = None,
+) -> list[dict]:
     """Return a simplified, display-friendly list of available formats."""
-    info = extract_info(url, cookies_from_browser=cookies_from_browser)
+    info = extract_info(url, cookies_from_browser=cookies_from_browser, player_client=player_client)
     formats = []
     for f in info.get("formats") or []:
         formats.append(
             {
                 "format_id": f.get("format_id"),
                 "ext": f.get("ext"),
-                "resolution": f.get("resolution") or (
-                    f"{f.get('width')}x{f.get('height')}" if f.get("height") else None
-                ),
+                "resolution": f.get("resolution")
+                or (f"{f.get('width')}x{f.get('height')}" if f.get("height") else None),
                 "fps": f.get("fps"),
                 "vcodec": f.get("vcodec"),
                 "acodec": f.get("acodec"),
@@ -247,6 +264,7 @@ def download(
     audio_only: bool = False,
     progress: ProgressCallback | None = None,
     cookies_from_browser: str | None = None,
+    player_client: str | None = None,
 ) -> list[DownloadResult]:
     """Download ``url`` and return one :class:`DownloadResult` per media item.
 
@@ -256,7 +274,7 @@ def download(
     out = Path(output_dir).expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    opts = _base_opts(out, cookies_from_browser=cookies_from_browser)
+    opts = _base_opts(out, cookies_from_browser=cookies_from_browser, player_client=player_client)
     opts["format"] = build_format_selector(quality, audio_only)
     hook = _progress_hook(progress)
     if hook is not None:

@@ -51,8 +51,12 @@ def test_media_info_from_ytdlp_flat_entry():
 
 
 def test_media_info_detects_playlist():
-    info = {"id": "pl", "title": "My Playlist", "_type": "playlist",
-            "entries": [{"id": "1"}, {"id": "2"}, {"id": "3"}]}
+    info = {
+        "id": "pl",
+        "title": "My Playlist",
+        "_type": "playlist",
+        "entries": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
+    }
     meta = core.MediaInfo.from_ytdlp(info)
     assert meta.is_playlist is True
     assert meta.entry_count == 3

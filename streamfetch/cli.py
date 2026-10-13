@@ -41,9 +41,7 @@ def _progress_line(state: dict) -> None:
         eta = state.get("eta")
         eta_txt = _human_duration(eta) if eta else "?"
         total = _human_bytes(state.get("total_bytes"))
-        sys.stdout.write(
-            f"\r  [download] {pct} of {total}  {speed_txt}  ETA {eta_txt}   "
-        )
+        sys.stdout.write(f"\r  [download] {pct} of {total}  {speed_txt}  ETA {eta_txt}   ")
         sys.stdout.flush()
     elif status == "processing":
         sys.stdout.write("\r  [download] 100.0% — post-processing...            \n")
@@ -51,7 +49,11 @@ def _progress_line(state: dict) -> None:
 
 
 def _cmd_info(args: argparse.Namespace) -> int:
-    info = core.fetch_metadata(args.urls[0], cookies_from_browser=args.cookies_from_browser)
+    info = core.fetch_metadata(
+        args.urls[0],
+        cookies_from_browser=args.cookies_from_browser,
+        player_client=args.player_client,
+    )
     print(f"Title:     {info.title}")
     print(f"Source:    {info.extractor}")
     print(f"Uploader:  {info.uploader or '-'}")
@@ -64,7 +66,11 @@ def _cmd_info(args: argparse.Namespace) -> int:
 
 
 def _cmd_formats(args: argparse.Namespace) -> int:
-    formats = core.list_formats(args.urls[0], cookies_from_browser=args.cookies_from_browser)
+    formats = core.list_formats(
+        args.urls[0],
+        cookies_from_browser=args.cookies_from_browser,
+        player_client=args.player_client,
+    )
     print(f"{'ID':<12}{'EXT':<7}{'RESOLUTION':<13}{'VCODEC':<12}{'ACODEC':<12}{'SIZE':<10}")
     print("-" * 66)
     for f in formats:
@@ -99,6 +105,7 @@ def _cmd_download(args: argparse.Namespace) -> int:
                 audio_only=args.audio,
                 progress=None if args.quiet else _progress_line,
                 cookies_from_browser=args.cookies_from_browser,
+                player_client=args.player_client,
             )
         except Exception as exc:  # noqa: BLE001 - surface a clean message to the user
             print(f"  error: {exc}", file=sys.stderr)
@@ -152,6 +159,13 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="BROWSER",
         choices=["chrome", "firefox", "edge", "brave", "opera", "vivaldi", "safari"],
         help="use cookies from a browser (for private/age-restricted videos)",
+    )
+    parser.add_argument(
+        "-c",
+        "--player-client",
+        default="",
+        choices=core.YOUTUBE_CLIENTS,
+        help="force a YouTube player client (tv/android/ios/mweb can bypass bot checks)",
     )
     parser.add_argument("--quiet", action="store_true", help="suppress progress output")
     parser.add_argument("--version", action="version", version=f"streamfetch {__version__}")

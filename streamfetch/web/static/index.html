@@ -109,8 +109,18 @@
         </select>
       </div>
       <div>
+        <label for="client">YT client</label>
+        <select id="client">
+          <option value="">Auto</option>
+          <option value="tv">tv</option>
+          <option value="android">android</option>
+          <option value="ios">ios</option>
+          <option value="mweb">mweb</option>
+        </select>
+      </div>
+      <div>
         <label>Audio only</label>
-        <label class="toggle"><input id="audio" type="checkbox" /> MP3 (needs ffmpeg)</label>
+        <label class="toggle"><input id="audio" type="checkbox" /> MP3</label>
       </div>
     </div>
     <div class="row mt">
@@ -183,7 +193,7 @@ $("infoBtn").addEventListener("click", async () => {
     const m = await api("/api/info", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, player_client: $("client").value }),
     });
     $("infoCard").classList.remove("hidden");
     $("thumb").src = m.thumbnail || "";
@@ -216,6 +226,7 @@ $("dlBtn").addEventListener("click", async () => {
         url,
         quality: $("quality").value,
         audio_only: $("audio").checked,
+        player_client: $("client").value,
       }),
     });
     jobId = started.job_id;

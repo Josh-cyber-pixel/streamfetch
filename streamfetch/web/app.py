@@ -58,6 +58,7 @@ _jobs_lock = threading.Lock()
 
 class InfoRequest(BaseModel):
     url: str
+    player_client: str = ""
     cookies_from_browser: str | None = None
 
 
@@ -65,6 +66,7 @@ class DownloadRequest(BaseModel):
     url: str
     quality: str = "best"
     audio_only: bool = False
+    player_client: str = ""
     cookies_from_browser: str | None = None
 
 
@@ -112,6 +114,7 @@ def _run_job(job_id: str, request: DownloadRequest) -> None:
             audio_only=request.audio_only,
             progress=on_progress,
             cookies_from_browser=request.cookies_from_browser,
+            player_client=request.player_client,
         )
         files = []
         for res in results:
@@ -150,8 +153,18 @@ def health() -> dict:
 @app.post("/api/info")
 def info(request: InfoRequest) -> dict:
     url = _validate_url(request.url)
+    if request.player_client not in core.YOUTUBE_CLIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown player_client {request.player_client!r}. "
+            f"Valid: {', '.join(core.YOUTUBE_CLIENTS)}",
+        )
     try:
-        meta = core.fetch_metadata(url, cookies_from_browser=request.cookies_from_browser)
+        meta = core.fetch_metadata(
+            url,
+            cookies_from_browser=request.cookies_from_browser,
+            player_client=request.player_client,
+        )
     except yt_dlp.utils.DownloadError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {
@@ -173,6 +186,12 @@ def start_download(request: DownloadRequest) -> dict:
     url = _validate_url(request.url)
     if request.quality not in core.QUALITY_PRESETS:
         raise HTTPException(status_code=400, detail=f"Unknown quality {request.quality!r}")
+    if request.player_client not in core.YOUTUBE_CLIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown player_client {request.player_client!r}. "
+            f"Valid: {', '.join(core.YOUTUBE_CLIENTS)}",
+        )
 
     job_id = uuid.uuid4().hex[:12]
     with _jobs_lock:
@@ -184,6 +203,7 @@ def start_download(request: DownloadRequest) -> dict:
             "url": url,
             "quality": request.quality,
             "audio_only": request.audio_only,
+            "player_client": request.player_client,
             "progress": None,
             "files": [],
             "error": None,
