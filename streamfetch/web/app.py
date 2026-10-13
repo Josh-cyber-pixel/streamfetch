@@ -242,7 +242,8 @@ def main() -> None:
     import uvicorn
 
     host = os.environ.get("STREAMFETCH_HOST", "0.0.0.0")
-    port = int(os.environ.get("STREAMFETCH_PORT", "8000"))
+    # Render and friends inject $PORT; fall back to STREAMFETCH_PORT, then 8000.
+    port = int(os.environ.get("PORT") or os.environ.get("STREAMFETCH_PORT") or "8000")
     uvicorn.run("streamfetch.web.app:app", host=host, port=port, reload=False)
 
 

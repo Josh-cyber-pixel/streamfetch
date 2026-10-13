@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: streamfetch
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: STREAMFETCH_HOST
+        value: 0.0.0.0

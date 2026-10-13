@@ -1,3 +1,13 @@
+---
+title: streamfetch
+emoji: 📥
+colorFrom: purple
+colorTo: blue
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # streamfetch
 
 Download videos from **YouTube, TikTok, and many other platforms** — from your
@@ -116,6 +126,17 @@ Configuration via environment variables:
 docker build -t streamfetch .
 docker run --rm -p 8000:8000 -v streamfetch_data:/data streamfetch
 ```
+
+## Deploy on Render
+
+1. Sign up at [render.com](https://render.com) (GitHub sign-in works).
+2. **New → Web Service → Connect your GitHub repo** (`streamfetch`).
+3. Runtime: **Docker**. Instance type: **Free**. Deploy.
+4. You get a public URL: `https://streamfetch.onrender.com` (your service name may vary).
+
+> Free-tier note: the service sleeps after ~15 min idle (cold start ~1 min) and
+> its disk is ephemeral — downloaded files are removed on restart. Fine for
+> personal use; use a paid plan / persistent disk for heavy usage.
 
 ## Development
 
